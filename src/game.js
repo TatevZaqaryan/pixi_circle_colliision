@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js'
-
+import { Circle } from './circle.js';
+import { getRandomInRange , getRandomColor} from "./utils.js";
 export class Game extends PIXI.Application {
     constructor() {
         super({
@@ -7,65 +8,123 @@ export class Game extends PIXI.Application {
             height: window.innerHeight,
             backgroundColor: 0xc3c3c3
         })
-        this.velocity = {x:3,y:3}
         document.body.appendChild(this.view)
         
-        this.loader.add([
-            { name: 'bunny1', url: 'assets/bunny1.png' },
-            { name: 'bunny2', url: 'assets/bunny2.png' },
-            { name: 'bunny3', url: 'assets/bunny3.png' },
-        ])
-
-
+        // this.loader.add([
+        //     { name: 'bunny1', url: 'assets/bunny1.png' },
+        //     { name: 'bunny2', url: 'assets/bunny2.png' },
+        //     { name: 'bunny3', url: 'assets/bunny3.png' },
+        // ])
+      
     
-    this.graphic=new PIXI.Graphics();
-    this.graphic.x=Math.random()*this.renderer.width/2;
-    this.graphic.y=Math.random()*this.renderer.height/2;
-    this.graphic.beginFill(0x0ff0000)
-    this.graphic.drawCircle(0, 0, 50)
-    this.graphic.endFill();
-    this.stage.addChild(this.graphic);
-
-    // this.ticker.add(this._animate, this);
-    // this.ticker.start();
-   // this.delta=0; 
-
-this.ticker.add(this._animate, this);
-    this.ticker.start();
    
 
-    }
 
+    this.ticker.add(this._animate, this);
+    this.ticker.start();
+    
+this.circles=[];
+ for (let i = 0; i < 15; i++) {
+     
+    const graphic=new Circle();
+     graphic.x=getRandomInRange(graphic.width, this.renderer.width-graphic.width);
+     graphic.y=getRandomInRange(graphic.height, this.renderer.height-graphic.height);
+     this.circles.push(graphic)
+     this.stage.addChild(graphic);
+ }
+
+
+    }
     _animate(){
-            //  this.delta+=0.5
         this._move()
     }
 
     _move(){
-            
-            this.graphic.x+=this.velocity.x;
-            this.graphic.y+=this.velocity.y;
+
+            for (let i = 0; i < this.circles.length; i++) {
+                
+                this.circles[i].x+=this.circles[i].velocity.x;
+                this.circles[i].y+=this.circles[i].velocity.y;
+            }
             this._checkWorldBounds()
+            this._checkCirclesCollision()
         }
     
 
     _checkWorldBounds() {
-            if(this.graphic.position.x>window.innerWidth-this.graphic.width/2){
-                this.velocity.x=-2
-            }
-    
-            if(this.graphic.position.x<this.graphic.width/2){
-                this.velocity.x=2
-            }
+        for (let i = 0; i < this.circles.length; i++) {
             
-            if(this.graphic.position.y>window.innerHeight-this.graphic.width/2){
-                this.velocity.y=-2
+            if(this.circles[i].position.x>window.innerWidth-this.circles[i].width/2){
+                this.circles[i].velocity.x=-3
+                console.log(i)
+                }
+        
+                else if(this.circles[i].position.x<this.circles[i].width/2){
+                    this.circles[i].velocity.x=3
+                }
+                
+                else if(this.circles[i].position.y>window.innerHeight-this.circles[i].width/2){
+                    this.circles[i].velocity.y=-3
+                    
+                }
+                else if(this.circles[i].position.y<this.circles[i].width/2){
+                    this.circles[i].velocity.y=3
+                }
+        }
+        
+    }
+
+    _checkCirclesCollision() {
+        this.circles.forEach((circle1, index1)=>{
+            this.circles.forEach((circle2,index2)=>{
+                
+            if (index1!==index2) {
+              // const distance= this._checkCollision(circle1, circle2)        
+             
+            if ( this. rectsIntersect(circle1, circle2)) {
+                    
+              this. _resolveCollision(circle1, circle2)
+            }
                 
             }
-            if(this.graphic.position.y<this.graphic.width/2){
-                this.velocity.y=2
-            }
+            })
+         })
+    }  
+
+    _checkCollision(circle1, circle2) {
+        return Math.sqrt(Math.pow((circle2.position.x-circle1.position.x), 2)+Math.pow((circle2.position.y-circle1.position.y), 2));
+       
+    } 
+    rectsIntersect(a, b){
+        this.aBox=a.getBounds();
+        this.bBox=b.getBounds();
+
+        return this.aBox.x+this.aBox.width>this.bBox.x&&this.aBox.x<this.bBox.x+this.bBox.width&&this.aBox.y+this.aBox.height>this.bBox.y&&this.aBox.y<this.bBox.y+this.bBox.height;
+
     }
+ 
+    _resolveCollision(circle1, circle2) {
+
+            const xVelocityDiff = circle1.velocity.x - circle2.velocity.x;
+            const yVelocityDiff = circle1.velocity.y - circle2.velocity.y;
+            const distance=this._checkCollision(circle1, circle2)  
+            const xDist = circle2.position.x - circle1.position.x;
+            const yDist = circle2.position.y - circle1.position.y;
+            let VCollisionNorm={x:xDist/distance, y:yDist/distance}
+            let speed=xVelocityDiff *VCollisionNorm.x + yVelocityDiff*VCollisionNorm.y ;
+            if (speed >=0) {
+        
+                circle1.velocity.x -= 0.7*speed*VCollisionNorm.x
+                circle1.velocity.y -= 0.7*speed*VCollisionNorm.y
+        
+                circle2.velocity.x =0.7*speed*VCollisionNorm.x
+                circle2.velocity.y = 0.7*speed*VCollisionNorm.y
+        
+                
+            }  
+        
+        }
+    
 
 
 }
