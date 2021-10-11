@@ -1,6 +1,8 @@
 import * as PIXI from 'pixi.js'
+import { Velocity } from 'planck-js';
 import { Circle } from './circle.js';
-import { getRandomInRange , getRandomColor} from "./utils.js";
+import { getRandomInRange, getRandomColor } from "./utils.js";
+
 export class Game extends PIXI.Application {
     constructor() {
         super({
@@ -9,121 +11,159 @@ export class Game extends PIXI.Application {
             backgroundColor: 0xc3c3c3
         })
         document.body.appendChild(this.view)
-        
+
         // this.loader.add([
         //     { name: 'bunny1', url: 'assets/bunny1.png' },
         //     { name: 'bunny2', url: 'assets/bunny2.png' },
         //     { name: 'bunny3', url: 'assets/bunny3.png' },
         // ])
-      
-    
-   
-
-
-    this.ticker.add(this._animate, this);
-    this.ticker.start();
-    
-this.circles=[];
- for (let i = 0; i < 15; i++) {
-     
-    const graphic=new Circle();
-     graphic.x=getRandomInRange(graphic.width, this.renderer.width-graphic.width);
-     graphic.y=getRandomInRange(graphic.height, this.renderer.height-graphic.height);
-     this.circles.push(graphic)
-     this.stage.addChild(graphic);
- }
-
-
-    }
-    _animate(){
-        this._move()
-    }
-
-    _move(){
-
-            for (let i = 0; i < this.circles.length; i++) {
-                
-                this.circles[i].x+=this.circles[i].velocity.x;
-                this.circles[i].y+=this.circles[i].velocity.y;
-            }
-            this._checkWorldBounds()
-            this._checkCirclesCollision()
+        this.bulean = false;
+        this.time = 0;
+        this.velocity = {
+            x: 0,
+            y: 0
         }
-    
-
-    _checkWorldBounds() {
-        for (let i = 0; i < this.circles.length; i++) {
-            
-            if(this.circles[i].position.x>window.innerWidth-this.circles[i].width/2){
-                this.circles[i].velocity.x=-3
-                console.log(i)
-                }
-        
-                else if(this.circles[i].position.x<this.circles[i].width/2){
-                    this.circles[i].velocity.x=3
-                }
-                
-                else if(this.circles[i].position.y>window.innerHeight-this.circles[i].width/2){
-                    this.circles[i].velocity.y=-3
-                    
-                }
-                else if(this.circles[i].position.y<this.circles[i].width/2){
-                    this.circles[i].velocity.y=3
-                }
+        this.mouseDownPos = {
+            x: 0,
+            y: 0,
+            date: new Date(),
         }
-        
-    }
+        this.mouseUpPos = {
+            x: 0,
+            y: 0,
+            date: new Date(),
+        }
 
-    _checkCirclesCollision() {
-        this.circles.forEach((circle1, index1)=>{
-            this.circles.forEach((circle2,index2)=>{
-                
-            if (index1!==index2) {
-              // const distance= this._checkCollision(circle1, circle2)        
-             
-            if ( this. rectsIntersect(circle1, circle2)) {
-                    
-              this. _resolveCollision(circle1, circle2)
-            }
-                
-            }
-            })
-         })
-    }  
+        this.loader.onComplete.add(this._onLoadComplete, this);
+        this.loader.load();
+    
+        this.ticker.add(this._animate, this);
+        this.ticker.start();
 
-    _checkCollision(circle1, circle2) {
-        return Math.sqrt(Math.pow((circle2.position.x-circle1.position.x), 2)+Math.pow((circle2.position.y-circle1.position.y), 2));
+
        
-    } 
-    rectsIntersect(a, b){
-        this.aBox=a.getBounds();
-        this.bBox=b.getBounds();
 
-        return this.aBox.x+this.aBox.width>this.bBox.x&&this.aBox.x<this.bBox.x+this.bBox.width&&this.aBox.y+this.aBox.height>this.bBox.y&&this.aBox.y<this.bBox.y+this.bBox.height;
 
     }
- 
-    _resolveCollision(circle1, circle2) {
 
-            const xVelocityDiff = circle1.velocity.x - circle2.velocity.x;
-            const yVelocityDiff = circle1.velocity.y - circle2.velocity.y;
-            const distance=this._checkCollision(circle1, circle2)  
-            const xDist = circle2.position.x - circle1.position.x;
-            const yDist = circle2.position.y - circle1.position.y;
-            let VCollisionNorm={x:xDist/distance, y:yDist/distance}
-            let speed=xVelocityDiff *VCollisionNorm.x + yVelocityDiff*VCollisionNorm.y ;
-            if (speed >=0) {
+    _onLoadComplete(){
+        this._cretatecircle();
+        this._mouseEvent();
+    }
+_cretatecircle(){
+    this.graphic = new Circle();
+    this.graphic.x = this.renderer.width / 2,
+    this.graphic.y = this.renderer.height / 2
+    this.graphic.beginFill(getRandomColor());
+    this.stage.addChild(this.graphic);
+
+}
+_mouseEvent(){
+    this.graphic.interactive = true;
+
+    this.graphic.on('pointerdown', this._onCirclePointerDown, this);
+    this.graphic.on("pointerup", this._onCirclePointerUp, this);
+    this.graphic.on("pointerupoutside", this._onCirclePointerSide, this);
+}
+
+    _drawPathLine() {
+        this.pathLine = new PIXI.Graphics();
+        this.pathLine.lineStyle(2, 0xff0000);
+        this.pathLine.moveTo(this.graphic.x, this.graphic.y);
+        this.pathLine.lineTo(this.mouseUpPos.x, this.mouseUpPos.y)
+        this.stage.addChild(this.pathLine);
+    }
+
+    _onCirclePointerDown() {
+        this.graphic.on("pointermove", this. _onCirclePointerMove, this);
+
+            this.mouseDownPos.x = this.graphic.x;
+            this.mouseDownPos.y = this.graphic.y;
+            this.mouseUpPos.x=this.graphic.x;
+            this.mouseUpPos.y=this.graphic.y;
+
+            this._drawPathLine()
+    }
+
+    _colculateVelocity() {
+        this.velocity.x = (this.mouseDownPos.x - this.mouseUpPos.x)/40
+        this.velocity.y = (this.mouseDownPos.y - this.mouseUpPos.y)/40 
+    }
+
+
+    _onCirclePointerUp(e) {
+        this.graphic.off("pointermove", this. _onCirclePointerMove, this);
+        this.pathLine.clear();
+
+    }
+    _onCirclePointerSide(){
+        this.graphic.off("pointermove", this. _onCirclePointerMove, this);
+        this.pathLine.clear();
+        this._colculateVelocity()
+       
+        console.log(this.velocity.x)
+   
+    }
+_circleMove(){
+    this.graphic.x+=this.velocity.x;
+    this.graphic.y+=this.velocity.y;
+
+    if (this.velocity.x>0) {
+        this.velocity.x-=0.03;
+    }
+    else if(this.velocity.x<0){
+        this.velocity.x+=0.03;
+
+    }
+    if (this.velocity.x<0.01 && this.velocity.x>-0.01) {
+        this.velocity.x=0;
+    }
+    if (this.velocity.y>0) {
+        this.velocity.y-=0.03;
+    }
+    else if(this.velocity.y<0){
+        this.velocity.y+=0.03;
+
+    }
+    if (this.velocity.y<0.01 && this.velocity.y>-0.01) {
+        this.velocity.y=0;
+    }
+}
+    _onCirclePointerMove(e) {
+        console.log('move')
+        this.mouseUpPos.x = e.data.global.x;
+        this.mouseUpPos.y = e.data.global.y;
         
-                circle1.velocity.x -= 0.7*speed*VCollisionNorm.x
-                circle1.velocity.y -= 0.7*speed*VCollisionNorm.y
+            this.pathLine.clear();
+            this._drawPathLine()
         
-                circle2.velocity.x =0.7*speed*VCollisionNorm.x
-                circle2.velocity.y = 0.7*speed*VCollisionNorm.y
+    }
+    _checkWorldBounds() {
+            
+            if(this.graphic.x>window.innerWidth-this.graphic.width/2){
+                this.velocity.x=-Math.abs( this.velocity.x)
+                }
         
+                else if(this.graphic.x<this.graphic.width/2){
+                    this.velocity.x=Math.abs( this.velocity.x)
+                }
                 
-            }  
+                else if(this.graphic.position.y>window.innerHeight-this.graphic.width/2){
+                    this.velocity.y=-Math.abs( this.velocity.y)
+                    
+                }
+                else if(this.graphic.y<this.graphic.width/2){
+                    this.velocity.y=Math.abs( this.velocity.y)
+                }
         
-        }
+        
+    }
+
+_animate(){
+this._circleMove()
+this._checkWorldBounds() 
+}
+
     
 
 
