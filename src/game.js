@@ -156,8 +156,8 @@ export class Game extends PIXI.Application {
   }
 
   _colculateVelocity() {
-    this._circles[this._circles.length -1].velocity.x = (this.mouseDownPos.x - this.mouseUpPos.x) / 40;
-    this._circles[this._circles.length -1].velocity.y = (this.mouseDownPos.y - this.mouseUpPos.y) / 40;
+    this._circles[this._circles.length -1].velocity.x = (this.mouseDownPos.x - this.mouseUpPos.x) / 20;
+    this._circles[this._circles.length -1].velocity.y = (this.mouseDownPos.y - this.mouseUpPos.y) / 20;
   }
 
   _onCirclePointerUp(e) {
@@ -173,7 +173,7 @@ export class Game extends PIXI.Application {
   _circleMove() {
     this._circles.forEach((circle) => {
         // console.log(circle)
-        if(circle){
+        //if(circle){
       circle.x += circle.velocity.x;
       circle.y += circle.velocity.y;
       const distance = this._checkCollisionVel(circle);
@@ -183,18 +183,18 @@ export class Game extends PIXI.Application {
       } else if (circle.velocity.x < 0) {
         circle.velocity.x += Math.abs(circle.velocity.x) / distance / 10;
       }
-      if (circle.velocity.x < 0.01 && circle.velocity.x > -0.01) {
-        circle.velocity.x = 0;
-      }
+    //   if (circle.velocity.x < 0.01 && circle.velocity.x > -0.01) {
+    //     circle.velocity.x = 0;
+    //   }
       if (circle.velocity.y > 0) {
         circle.velocity.y -= Math.abs(circle.velocity.y) / distance / 10;
       } else if (circle.velocity.y < 0) {
         circle.velocity.y += Math.abs(circle.velocity.y) / distance / 10;
       }
-      if (circle.velocity.y < 0.01 && circle.velocity.y > -0.01) {
-        circle.velocity.y = 0;
-      }
-    }
+    //   if (circle.velocity.y < 0.01 && circle.velocity.y > -0.01) {
+    //     circle.velocity.y = 0;
+    //   }
+   // }
     });
   }
 
